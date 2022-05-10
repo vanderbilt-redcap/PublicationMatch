@@ -100,4 +100,60 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		// return result (string)
 		return $result;
 	}
+	
+	public function sendAllAPIRequests() {
+		$return_data = [];
+		$source_names = $this->getProjectSetting("api_source_names");
+		$today_ymd = date("Y-m-d");
+		
+		foreach($source_names as $source_name) {
+			$return_data[$source_name] = $this->sendAPIRequest($source_name, $today_ymd);
+		}
+		
+		return $return_data;
+	}
+	
+	public function dailyFetchCron($cronInfo) {
+		$originalPid = $_GET['pid'];
+
+		foreach($this->getProjectsWithModuleEnabled() as $localProjectId){
+			$_GET['pid'] = $localProjectId;
+
+			// send SRI API requests and store returned data in REDCap project
+			$from_api = $this->sendAllAPIRequests();
+			
+			$project_id = $this->getProjectId();
+			$new_rid = \REDCap::reserveNewRecordId($project_id);
+			if ($new_rid != (int) $new_rid || $new_rid == 0) {
+				\REDCap::logEvent("Publication Match module", "Couldn't pick a new record ID to save today's API results in -- cancelling cron job.");
+				return;
+			}
+			
+			$rid_field_name = $this->getRecordIdField();
+			$data_to_save = json_encode([
+				[
+					$rid_field_name => $new_rid,
+					"data" => json_encode($from_api)
+				]
+			]);
+			
+			$save_params = [
+				"project_id" => $project_id,
+				"dataFormat" => "json",
+				"data" => $data_to_save,
+				"overwriteBehavior" => "overwrite"
+			];
+			$save_result = \REDcap::saveData($save_params);
+			
+			$errors = $save_result["errors"];
+			if (!empty($errors)) {
+				\REDCap::logEvent("Publication Match module", "REDCap encountered issues trying to save today's API data pull: " . print_r($errors, true) . "\n -- REDCap::saveData arguments: " . print_r($save_params, true));
+			}
+		}
+
+		// Put the pid back the way it was before this cron job (likely doesn't matter, but is good housekeeping practice)
+		$_GET['pid'] = $originalPid;
+
+		return "The \"{$cronInfo['cron_description']}\" cron job completed successfully.";
+	}
 }

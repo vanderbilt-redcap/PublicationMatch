@@ -27,11 +27,29 @@
 		"redcap_survey_complete"
 	],
 	"enable-every-page-hooks-on-system-pages": false,
+	"project-settings": [
+		{
+			"key": "api_source_names",
+			"name": "SRI API Source names (see: https:\/\/starbrite.app.vumc.org\/s\/sri\/docs)",
+			"type": "text",
+			"required": false,
+			"repeatable": true
+		}
+	],
 	"system-settings": [],
 	"compatibility": {
 		"php-version-min": "",
 		"php-version-max": "",
 		"redcap-version-min": "",
 		"redcap-version-max": ""
-	}
+	},
+	"crons": [
+		{
+			"cron_name": "pub_match_daily_api_fetch",
+			"cron_description": "Gets Publication Match data from SRI API once a day to store in REDCap",
+			"method": "dailyFetchCron",
+			"cron_hour": 1,
+			"cron_minute": 1
+		}
+	]
 }
