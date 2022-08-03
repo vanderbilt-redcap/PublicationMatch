@@ -6,7 +6,9 @@ This REDCap external module was created to pull publication match data from the 
 **Configuration**
 
 Admins can configure the module by adding SRI API Source names to the repeatable list. You can do this by clicking the "Configure" button on the external modules "Manage" page. Clicking the "+" button will allow you to enter more than one SRI API Source name. A list of available source name values can be found here:
-https://starbrite.app.vumc.org/s/sri/doc
+https://starbrite.app.vumc.org/s/sri/docs
+
+Developers: You can also review the Swagger UI to get additional API endpoints here: https://starbrite.app.vumc.org/s/sri/docs/swagger#/default/get_pub_match_source__source_ 
 
 Note, that you will need to be on the VUMC VPN in order to access the "Swagger UI" where the SRI API documentation and examples are hosted.
 

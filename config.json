@@ -48,8 +48,8 @@
 			"cron_name": "pub_match_daily_api_fetch",
 			"cron_description": "Gets Publication Match data from SRI API once a day to store in REDCap",
 			"method": "dailyFetchCron",
-			"cron_hour": 1,
-			"cron_minute": 1
+			"cron_frequency": 86400,
+		    "cron_max_run_time": 60
 		}
 	]
 }

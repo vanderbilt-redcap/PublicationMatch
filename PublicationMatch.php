@@ -57,28 +57,19 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $credentials;
 	}
 	
-	public function sendAPIRequest($api_source_argument, $api_date_argument) {
+	public function sendAPIRequest($api_source_argument) {
 		// validate source value
 		if (!in_array($api_source_argument, $this->data_source_allow_list, true)) {
 			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_source_argument': $api_source_argument -- is not a valid source name. See https://starbrite.app.vumc.org/s/sri/docs#publication-matching");
 			return false;
 		}
 		
-		// sanitize date value
-		$date_array = explode("-", $api_date_argument);
-		// checkdate takes args in month, day, year order
-		if (!checkdate((int) $date_array[1], (int) $date_array[2], (int) $date_array[0])) {
-			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_date_argument': $api_date_argument -- is not a valid YEAR-MONTH-DAY date value.");
-			return false;
-		}
-		$safe_date_argument = $date_array[1] . "-" . $date_array[2] . "-" . $date_array[0];
-		
 		// fetch credentials from server file
 		$credentials = $this->getCredentials();
 		$api_auth_token = base64_encode($credentials["username"] . ":" . $credentials["password"]);
 		
-		// declare url for API endpoint
-		$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/user-affiliation/{$api_source_argument}?createdDate={$safe_date_argument}";
+		// declare url for API endpoint;
+		$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/source/{$api_source_argument}";
 		
 		// create curl resource handle
 		$ch = curl_init();
@@ -86,6 +77,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		// set curl options
 		curl_setopt($ch, CURLOPT_URL, $api_endpoint_url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
 			'Accept: application/json',
 			'Authorization: Basic ' . $api_auth_token
@@ -104,10 +96,9 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 	public function sendAllAPIRequests() {
 		$return_data = [];
 		$source_names = $this->getProjectSetting("api_source_names");
-		$today_ymd = date("Y-m-d");
 		
 		foreach($source_names as $source_name) {
-			$return_data[$source_name] = $this->sendAPIRequest($source_name, $today_ymd);
+			$return_data[$source_name] = $this->sendAPIRequest($source_name);
 		}
 		
 		return $return_data;
