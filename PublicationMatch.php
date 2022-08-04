@@ -57,9 +57,9 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $credentials;
 	}
 	
-	public function sendAPIRequest($api_source_argument) {
+	public function sendAPIRequest($api_source_type, $api_source_argument) {
 		// validate source value
-		if (!in_array($api_source_argument, $this->data_source_allow_list, true)) {
+		if ($api_source_type == "grant" && !in_array($api_source_argument, $this->data_source_allow_list, true)) {
 			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_source_argument': $api_source_argument -- is not a valid source name. See https://starbrite.app.vumc.org/s/sri/docs#publication-matching");
 			return false;
 		}
@@ -68,8 +68,18 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		$credentials = $this->getCredentials();
 		$api_auth_token = base64_encode($credentials["username"] . ":" . $credentials["password"]);
 		
-		// declare url for API endpoint;
-		$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/source/{$api_source_argument}";
+		if($api_source_type == "grant") {
+			// declare url for API endpoint;
+			$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/source/{$api_source_argument}";
+		}
+		else if($api_source_type == "vunet") {
+			// declare url for API endpoint;
+			$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/vunet/{$api_source_argument}";
+		}
+		else {
+			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_source_type': $api_source_type -- is not a valid source type.");
+			return false;
+		}
 		
 		// create curl resource handle
 		$ch = curl_init();
@@ -93,12 +103,13 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $result;
 	}
 	
-	public function sendAllAPIRequests() {
+	public function sendAllAPIRequests($projectId) {
 		$return_data = [];
-		$source_names = $this->getProjectSetting("api_source_names");
+		$source_names = $this->getProjectSetting("api_source_names",$projectId);
+		$source_type = $this->getProjectSetting("api_source_type",$projectId);
 		
 		foreach($source_names as $source_name) {
-			$return_data[$source_name] = $this->sendAPIRequest($source_name);
+			$return_data[$source_name] = $this->sendAPIRequest($source_type,$source_name);
 		}
 		
 		return $return_data;
@@ -111,27 +122,33 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 			$_GET['pid'] = $localProjectId;
 
 			// send SRI API requests and store returned data in REDCap project
-			$from_api = $this->sendAllAPIRequests();
+			$from_api = $this->sendAllAPIRequests($localProjectId);
 			
-			$project_id = $this->getProjectId();
-			$new_rid = \REDCap::reserveNewRecordId($project_id);
-			if ($new_rid != (int) $new_rid || $new_rid == 0) {
-				\REDCap::logEvent("Publication Match module", "Couldn't pick a new record ID to save today's API results in -- cancelling cron job.");
-				return;
+			$rid_field_name = $this->getRecordIdField($localProjectId);
+			$dateField = $this->getProjectSetting("publication_save_field",$localProjectId);
+			$vunetField = $this->getProjectSetting("vunet_save_field",$localProjectId);
+			$pmidField = $this->getProjectSetting("pmid_save_field",$localProjectId);
+			$titleField = $this->getProjectSetting("title_save_field",$localProjectId);
+			$data_to_save = [];
+			
+			foreach($from_api as $thisSource => $apiData) {
+				$apiData = json_decode($apiData,true);
+				foreach($apiData["data"][0]["publications"] as $thisPublication) {
+					
+					$data_to_save[$thisPublication["pubMedId"]] = [
+						$rid_field_name => $thisPublication["pubMedId"],
+						$dateField => $thisPublication["publishedDate"],
+						$vunetField => $thisPublication["matchedVunet"],
+						$pmidField => $thisPublication["pubMedId"],
+						$titleField => $thisPublication["title"]
+					];
+				}
 			}
 			
-			$rid_field_name = $this->getRecordIdField();
-			$data_to_save = json_encode([
-				[
-					$rid_field_name => $new_rid,
-					"data" => json_encode($from_api)
-				]
-			]);
-			
 			$save_params = [
-				"project_id" => $project_id,
+				"project_id" => $localProjectId,
 				"dataFormat" => "json",
-				"data" => $data_to_save,
+				"data" => json_encode($data_to_save),
 				"overwriteBehavior" => "overwrite"
 			];
 			$save_result = \REDcap::saveData($save_params);

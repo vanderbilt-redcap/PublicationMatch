@@ -13,13 +13,6 @@
 	],
 	"links": {
 		"project": [
-			{
-				"name": "Test",
-				"key": "test",
-				"icon": "fas fa-menu",
-				"url": "test.php",
-				"show-header-and-footer": false
-			}
 		]
 	},
 	"permissions": [
@@ -29,11 +22,51 @@
 	"enable-every-page-hooks-on-system-pages": false,
 	"project-settings": [
 		{
+		  "key": "api_source_type",
+		  "name": "Which type of API matching is being used",
+		  "type": "dropdown",
+		  "choices": [
+			{
+				"name": "Grant Source",
+			  	"value": "grant"
+			},
+			{
+			  "name": "VUNet ID",
+			  "value": "vunet"
+			}
+		  ],
+		  "required": true
+		},
+		{
 			"key": "api_source_names",
 			"name": "SRI API Source names (see: https:\/\/starbrite.app.vumc.org\/s\/sri\/docs)",
 			"type": "text",
 			"required": false,
 			"repeatable": true
+		},
+		{
+		  "key": "publication_save_field",
+		  "name": "Field to save publication date",
+		  "type": "field-list",
+		  "required": true
+		},
+		{
+		  "key": "title_save_field",
+		  "name": "Field to save publication title",
+		  "type": "field-list",
+		  "required": true
+		},
+		{
+		  "key": "vunet_save_field",
+		  "name": "Field to save author VUNetID",
+		  "type": "field-list",
+		  "required": true
+		},
+		{
+		  "key": "pmid_save_field",
+		  "name": "Field to save PubMed ID",
+		  "type": "field-list",
+		  "required": true
 		}
 	],
 	"system-settings": [],
