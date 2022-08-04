@@ -39,7 +39,7 @@
 		},
 		{
 			"key": "api_source_names",
-			"name": "SRI API Source names (see: https:\/\/starbrite.app.vumc.org\/s\/sri\/docs)",
+			"name": "VUNet IDs or SRI API Source names (see: https:\/\/starbrite.app.vumc.org\/s\/sri\/docs)",
 			"type": "text",
 			"required": false,
 			"repeatable": true
