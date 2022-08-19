@@ -148,7 +148,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 			"data" => json_encode($data_to_save),
 			"overwriteBehavior" => "overwrite"
 		];
-		$save_result = \REDcap::saveData($save_params);
+		$save_result = \REDCap::saveData($save_params);
 		
 		$errors = $save_result["errors"];
 		if (!empty($errors)) {
