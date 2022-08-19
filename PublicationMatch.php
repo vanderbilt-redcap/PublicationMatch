@@ -115,48 +115,52 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $return_data;
 	}
 	
+	public function runProjectCron($projectId) {
+		$_GET['pid'] = $projectId;
+		
+		// send SRI API requests and store returned data in REDCap project
+		$from_api = $this->sendAllAPIRequests($projectId);
+		
+		$rid_field_name = $this->getRecordIdField($projectId);
+		$dateField = $this->getProjectSetting("publication_save_field",$projectId);
+		$vunetField = $this->getProjectSetting("vunet_save_field",$projectId);
+		$pmidField = $this->getProjectSetting("pmid_save_field",$projectId);
+		$titleField = $this->getProjectSetting("title_save_field",$projectId);
+		$data_to_save = [];
+		
+		foreach($from_api as $thisSource => $apiData) {
+			$apiData = json_decode($apiData,true);
+			foreach($apiData["data"][0]["publications"] as $thisPublication) {
+				
+				$data_to_save[$thisPublication["pubMedId"]] = [
+					$rid_field_name => $thisPublication["pubMedId"],
+					$dateField => $thisPublication["publishedDate"],
+					$vunetField => $thisPublication["matchedVunet"],
+					$pmidField => $thisPublication["pubMedId"],
+					$titleField => $thisPublication["title"]
+				];
+			}
+		}
+		
+		$save_params = [
+			"project_id" => $projectId,
+			"dataFormat" => "json",
+			"data" => json_encode($data_to_save),
+			"overwriteBehavior" => "overwrite"
+		];
+		$save_result = \REDcap::saveData($save_params);
+		
+		$errors = $save_result["errors"];
+		if (!empty($errors)) {
+			\REDCap::logEvent("Publication Match module", "REDCap encountered issues trying to save today's API data pull: " . print_r($errors, true) . "\n -- REDCap::saveData arguments: " . print_r($save_params, true));
+		}
+	}
+	
 	public function dailyFetchCron($cronInfo) {
 		$originalPid = $_GET['pid'];
 
 		foreach($this->getProjectsWithModuleEnabled() as $localProjectId){
-			$_GET['pid'] = $localProjectId;
-
-			// send SRI API requests and store returned data in REDCap project
-			$from_api = $this->sendAllAPIRequests($localProjectId);
-			
-			$rid_field_name = $this->getRecordIdField($localProjectId);
-			$dateField = $this->getProjectSetting("publication_save_field",$localProjectId);
-			$vunetField = $this->getProjectSetting("vunet_save_field",$localProjectId);
-			$pmidField = $this->getProjectSetting("pmid_save_field",$localProjectId);
-			$titleField = $this->getProjectSetting("title_save_field",$localProjectId);
-			$data_to_save = [];
-			
-			foreach($from_api as $thisSource => $apiData) {
-				$apiData = json_decode($apiData,true);
-				foreach($apiData["data"][0]["publications"] as $thisPublication) {
-					
-					$data_to_save[$thisPublication["pubMedId"]] = [
-						$rid_field_name => $thisPublication["pubMedId"],
-						$dateField => $thisPublication["publishedDate"],
-						$vunetField => $thisPublication["matchedVunet"],
-						$pmidField => $thisPublication["pubMedId"],
-						$titleField => $thisPublication["title"]
-					];
-				}
-			}
-			
-			$save_params = [
-				"project_id" => $localProjectId,
-				"dataFormat" => "json",
-				"data" => json_encode($data_to_save),
-				"overwriteBehavior" => "overwrite"
-			];
-			$save_result = \REDcap::saveData($save_params);
-			
-			$errors = $save_result["errors"];
-			if (!empty($errors)) {
-				\REDCap::logEvent("Publication Match module", "REDCap encountered issues trying to save today's API data pull: " . print_r($errors, true) . "\n -- REDCap::saveData arguments: " . print_r($save_params, true));
-			}
+			$this->runProjectCron($localProjectId);
 		}
 
 		// Put the pid back the way it was before this cron job (likely doesn't matter, but is good housekeeping practice)
