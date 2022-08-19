@@ -160,6 +160,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		$originalPid = $_GET['pid'];
 
 		foreach($this->getProjectsWithModuleEnabled() as $localProjectId){
+			echo "<br />Running PubMed Update for $localProjectId ";
 			$this->runProjectCron($localProjectId);
 		}
 
