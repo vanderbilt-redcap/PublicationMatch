@@ -124,6 +124,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		$rid_field_name = $this->getRecordIdField($projectId);
 		$dateField = $this->getProjectSetting("publication_save_field",$projectId);
 		$vunetField = $this->getProjectSetting("vunet_save_field",$projectId);
+		$emailField = $this->getProjectSetting("email_save_field",$projectId);
 		$pmidField = $this->getProjectSetting("pmid_save_field",$projectId);
 		$titleField = $this->getProjectSetting("title_save_field",$projectId);
 		$data_to_save = [];
@@ -136,6 +137,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 					$rid_field_name => $thisPublication["pubMedId"],
 					$dateField => $thisPublication["publishedDate"],
 					$vunetField => $thisPublication["matchedVunet"],
+					$emailField => $thisPublication["matchedEmail"],
 					$pmidField => $thisPublication["pubMedId"],
 					$titleField => $thisPublication["title"]
 				];
