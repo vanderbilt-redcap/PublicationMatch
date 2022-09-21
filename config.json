@@ -63,6 +63,12 @@
 		  "required": true
 		},
 		{
+		  "key": "email_save_field",
+		  "name": "Field to save email address",
+		  "type": "field-list",
+		  "required": true
+		},
+		{
 		  "key": "pmid_save_field",
 		  "name": "Field to save PubMed ID",
 		  "type": "field-list",
