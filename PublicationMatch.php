@@ -131,16 +131,17 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		
 		foreach($from_api as $thisSource => $apiData) {
 			$apiData = json_decode($apiData,true);
-			foreach($apiData["data"][0]["publications"] as $thisPublication) {
-				
-				$data_to_save[$thisPublication["pubMedId"]] = [
-					$rid_field_name => $thisPublication["pubMedId"],
-					$dateField => $thisPublication["publishedDate"],
-					$vunetField => $thisPublication["matchedVunet"],
-					$emailField => $thisPublication["matchedEmail"],
-					$pmidField => $thisPublication["pubMedId"],
-					$titleField => $thisPublication["title"]
-				];
+			foreach($apiData["data"] as $apiRecord) {
+				foreach($apiRecord["publications"] as $thisPublication) {
+					$data_to_save[$thisPublication["pubMedId"]] = [
+						$rid_field_name => $thisPublication["pubMedId"],
+						$dateField => $thisPublication["publishedDate"],
+						$vunetField => $thisPublication["matchedVunet"],
+						$emailField => $thisPublication["matchedEmail"],
+						$pmidField => $thisPublication["pubMedId"],
+						$titleField => $thisPublication["title"]
+					];
+				}	
 			}
 		}
 		
