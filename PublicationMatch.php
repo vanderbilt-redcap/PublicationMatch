@@ -142,7 +142,17 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		foreach($from_api as $thisSource => $apiData) {
 			$apiData = json_decode($apiData,true);
 			foreach($apiData["data"] as $apiRecord) {
-				if($source_type == 'vunet') {
+				if($source_type == 'user-affiliation') { 
+					$thisPublication = $apiRecord;
+					$data_to_save[$thisPublication["pubMedId"]] = [
+						$rid_field_name => $thisPublication["pubMedId"],
+						$dateField => $thisPublication["publishedDate"],
+						$vunetField => $thisPublication["matchedVunet"],
+						$emailField => $thisPublication["matchedEmail"],
+						$pmidField => $thisPublication["pubMedId"],
+						$titleField => $thisPublication["title"]
+					];
+				} else {
 					foreach($apiRecord["publications"] as $thisPublication) {
 						$data_to_save[$thisPublication["pubMedId"]] = [
 							$rid_field_name => $thisPublication["pubMedId"],
@@ -153,17 +163,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 							$titleField => $thisPublication["title"]
 						];
 					}
-				} else if($source_type == 'user-affiliation') { 
-					$thisPublication = $apiRecord;
-					$data_to_save[$thisPublication["pubMedId"]] = [
-						$rid_field_name => $thisPublication["pubMedId"],
-						$dateField => $thisPublication["publishedDate"],
-						$vunetField => $thisPublication["matchedVunet"],
-						$emailField => $thisPublication["matchedEmail"],
-						$pmidField => $thisPublication["pubMedId"],
-						$titleField => $thisPublication["title"]
-					];
-				}
+				} 
 				
 			}
 		}
