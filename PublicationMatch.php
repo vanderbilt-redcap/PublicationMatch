@@ -57,7 +57,7 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $credentials;
 	}
 	
-	public function sendAPIRequest($api_source_type, $api_source_argument) {
+	public function sendAPIRequest($api_source_type, $api_source_argument, $created_date = '') {
 		// validate source value
 		if ($api_source_type == "grant" && !in_array($api_source_argument, $this->data_source_allow_list, true)) {
 			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_source_argument': $api_source_argument -- is not a valid source name. See https://starbrite.app.vumc.org/s/sri/docs#publication-matching");
@@ -75,6 +75,14 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		else if($api_source_type == "vunet") {
 			// declare url for API endpoint;
 			$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/vunet/{$api_source_argument}";
+		}
+		else if($api_source_type == "user-affiliation") {
+			// declare url for API endpoint;
+			$api_endpoint_url = "https://starbrite.app.vumc.org/s/sri/api/pub-match/user-affiliation/{$api_source_argument}";
+			
+			if(!empty($created_date)) {
+				$api_endpoint_url = $api_endpoint_url . "?createdDate={$created_date}";
+			}	
 		}
 		else {
 			\REDCap::logEvent("Publication Match module", "Failed to send SRI API request -- 'api_source_type': $api_source_type -- is not a valid source type.");
@@ -103,13 +111,13 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		return $result;
 	}
 	
-	public function sendAllAPIRequests($projectId) {
+	public function sendAllAPIRequests($projectId, $source_type) {
 		$return_data = [];
 		$source_names = $this->getProjectSetting("api_source_names",$projectId);
-		$source_type = $this->getProjectSetting("api_source_type",$projectId);
+		$created_date = $this->getProjectSetting("created_date",$projectId);
 		
 		foreach($source_names as $source_name) {
-			$return_data[$source_name] = $this->sendAPIRequest($source_type,$source_name);
+			$return_data[$source_name] = $this->sendAPIRequest($source_type,$source_name,$created_date);
 		}
 		
 		return $return_data;
@@ -117,9 +125,11 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 	
 	public function runProjectCron($projectId) {
 		$_GET['pid'] = $projectId;
-		
+
+		$source_type = $this->getProjectSetting("api_source_type",$projectId);
+	
 		// send SRI API requests and store returned data in REDCap project
-		$from_api = $this->sendAllAPIRequests($projectId);
+		$from_api = $this->sendAllAPIRequests($projectId, $source_type);
 		
 		$rid_field_name = $this->getRecordIdField($projectId);
 		$dateField = $this->getProjectSetting("publication_save_field",$projectId);
@@ -132,7 +142,19 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 		foreach($from_api as $thisSource => $apiData) {
 			$apiData = json_decode($apiData,true);
 			foreach($apiData["data"] as $apiRecord) {
-				foreach($apiRecord["publications"] as $thisPublication) {
+				if($source_type == 'vunet') {
+					foreach($apiRecord["publications"] as $thisPublication) {
+						$data_to_save[$thisPublication["pubMedId"]] = [
+							$rid_field_name => $thisPublication["pubMedId"],
+							$dateField => $thisPublication["publishedDate"],
+							$vunetField => $thisPublication["matchedVunet"],
+							$emailField => $thisPublication["matchedEmail"],
+							$pmidField => $thisPublication["pubMedId"],
+							$titleField => $thisPublication["title"]
+						];
+					}
+				} else if($source_type == 'user-affiliation') { 
+					$thisPublication = $apiRecord;
 					$data_to_save[$thisPublication["pubMedId"]] = [
 						$rid_field_name => $thisPublication["pubMedId"],
 						$dateField => $thisPublication["publishedDate"],
@@ -141,10 +163,10 @@ class PublicationMatch extends \ExternalModules\AbstractExternalModule {
 						$pmidField => $thisPublication["pubMedId"],
 						$titleField => $thisPublication["title"]
 					];
-				}	
+				}
+				
 			}
 		}
-		
 		$save_params = [
 			"project_id" => $projectId,
 			"dataFormat" => "json",

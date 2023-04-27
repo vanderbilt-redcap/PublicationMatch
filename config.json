@@ -33,9 +33,19 @@
 			{
 			  "name": "VUNet ID",
 			  "value": "vunet"
+			},
+			{
+			  "name": "User Affiliation",
+			  "value": "user-affiliation"
 			}
 		  ],
 		  "required": true
+		},
+		{
+			"key": "created_date",
+			"name": "The date (UTC, yyyy-mm-dd) to use when filtering results by the day potential matches were created",
+			"type": "text",
+			"required": false
 		},
 		{
 			"key": "api_source_names",
